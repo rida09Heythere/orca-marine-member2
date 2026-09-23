@@ -1,7 +1,7 @@
 from app.tools.geofence import check_geofence
 
 
-def run_geofence(latitude: float, longitude: float) -> dict:
+def run_geofence(latitude: float, longitude: float):
     """
     Run the marine geofence safety check.
     """

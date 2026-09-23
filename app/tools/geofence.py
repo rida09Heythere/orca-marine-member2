@@ -1,13 +1,14 @@
 from shapely.geometry import Point, Polygon
 from pyproj import Transformer
+from app.models.tool_result import ToolResult
 
 
-def check_geofence(latitude: float, longitude: float) -> dict:
+def check_geofence(latitude: float, longitude: float) -> ToolResult:
     """
     Check vessel position against a restricted marine zone.
 
     NOTE:
-    The polygon below is temporary test data.
+    This polygon is temporary test data.
     Member 3 will later provide the real GeoJSON boundaries.
     """
 
@@ -21,22 +22,28 @@ def check_geofence(latitude: float, longitude: float) -> dict:
     vessel_position = Point(longitude, latitude)
 
     if restricted_zone.contains(vessel_position):
-        return {
-            "latitude": latitude,
-            "longitude": longitude,
-            "status": "RESTRICTED",
-            "distance_to_boundary_m": 0,
-            "message": "Vessel is inside the restricted zone."
-        }
+        return ToolResult(
+            tool="geofence",
+            status="RESTRICTED",
+            data={
+                "latitude": latitude,
+                "longitude": longitude,
+                "distance_to_boundary_m": 0
+            },
+            message="Vessel is inside the restricted zone.",
+            source="Temporary ORCA test polygon"
+        )
 
-    # Convert geographic coordinates (WGS84) to Web Mercator meters.
     transformer = Transformer.from_crs(
         "EPSG:4326",
         "EPSG:3857",
         always_xy=True
     )
 
-    vessel_x, vessel_y = transformer.transform(longitude, latitude)
+    vessel_x, vessel_y = transformer.transform(
+        longitude,
+        latitude
+    )
 
     projected_boundary = []
 
@@ -57,10 +64,14 @@ def check_geofence(latitude: float, longitude: float) -> dict:
         status = "SAFE"
         message = "Vessel is outside the restricted zone."
 
-    return {
-        "latitude": latitude,
-        "longitude": longitude,
-        "status": status,
-        "distance_to_boundary_m": round(distance_m, 2),
-        "message": message
-    }
+    return ToolResult(
+        tool="geofence",
+        status=status,
+        data={
+            "latitude": latitude,
+            "longitude": longitude,
+            "distance_to_boundary_m": round(distance_m, 2)
+        },
+        message=message,
+        source="Temporary ORCA test polygon"
+    )

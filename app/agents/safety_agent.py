@@ -14,7 +14,7 @@ def safety_agent(query: str, location: str | None = None) -> dict:
         "restricted",
         "zone",
         "eez",
-        "imbL",
+        "imbl",
         "near",
         "fishing"
     ]
@@ -49,7 +49,7 @@ def safety_agent(query: str, location: str | None = None) -> dict:
 
         return {
             "tool_used": "geofence",
-            "result": result
+            "result": result.model_dump()
         }
 
     except (ValueError, TypeError):
