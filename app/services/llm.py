@@ -7,6 +7,64 @@ load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=API_KEY) if API_KEY else None
 
+def build_fallback_answer(prompt: str, tool_result: dict) -> str:
+
+    unavailable = tool_result.get("unavailable_results", [])
+    errors = tool_result.get("errors", [])
+
+    restricted = [
+        result
+        for result in tool_result.get("available_results", [])
+        if result.get("status") == "RESTRICTED"
+    ]
+
+    approaching = [
+        result
+        for result in tool_result.get("available_results", [])
+        if result.get("status") == "APPROACHING"
+    ]
+
+    if restricted:
+        return (
+            "CRITICAL SAFETY ALERT: The vessel is inside a "
+            "restricted marine zone. The vessel should not continue "
+            "operating within this restricted area."
+        )
+
+    if approaching:
+        return (
+            "WARNING: The vessel is approaching a restricted "
+            "marine zone. Exercise caution and maintain a safe "
+            "distance from the boundary."
+        )
+
+    if errors:
+        return (
+            "I could not process the marine query completely because "
+            "the provided location or tool request contains an error."
+        )
+
+    if unavailable:
+        tool_names = [
+            result.get("tool", "unknown")
+            for result in unavailable
+        ]
+
+        tools_text = ", ".join(tool_names)
+
+        return (
+            f"Marine data for {tools_text} is currently unavailable "
+            "for the requested location. Therefore, I cannot reliably "
+            "determine fishing suitability or marine safety conditions "
+            "from these data sources yet. Please try again after the "
+            "required marine data sources are connected."
+        )
+
+    return (
+        "The marine tools returned results, but no LLM-generated "
+        "interpretation is currently available."
+    )
+
 
 def ask_llm(prompt: str, tool_result: dict | None = None) -> str:
 
@@ -15,17 +73,29 @@ def ask_llm(prompt: str, tool_result: dict | None = None) -> str:
 User question:
 {prompt}
 
-Deterministic marine safety tool result:
+Deterministic marine tool results:
 {tool_result}
 
-Explain the tool result clearly to the user.
+Explain the tool results clearly to the user.
+
 Do not invent coordinates, distances, boundaries, weather conditions,
-or other facts that are not present in the tool result.
-The deterministic tool result must be treated as authoritative.
+fish abundance, safety conditions, or other facts that are not present
+in the tool results.
+
+If a tool reports DATA_UNAVAILABLE, explicitly state that the data
+cannot currently be used to make that determination.
+
+The deterministic tool results must be treated as authoritative.
 """
 
     if client is None:
-        return f"[MOCK LLM] Query: {prompt}"
+        if tool_result:
+            return build_fallback_answer(prompt, tool_result)
+
+        return (
+            "The language model is currently unavailable. "
+            "Please try again later."
+        )
 
     try:
         response = client.responses.create(
@@ -36,4 +106,10 @@ The deterministic tool result must be treated as authoritative.
         return response.output_text
 
     except Exception:
-        return f"[MOCK LLM] API unavailable. Query: {prompt}"
+        if tool_result:
+            return build_fallback_answer(prompt, tool_result)
+
+        return (
+            "The language model is currently unavailable. "
+            "Please try again later."
+        )

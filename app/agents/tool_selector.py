@@ -16,8 +16,6 @@ def select_tools(query: str) -> list[str]:
         "restricted",
         "eez",
         "imbl",
-        "safe",
-        "safety",
         "near"
     ]):
         selected_tools.append("geofence")

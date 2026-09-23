@@ -1,20 +1,29 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Any
 
 
 class Evidence(BaseModel):
-    source: str
+    source: Optional[str] = None
     tool: Optional[str] = None
     status: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    distance_to_boundary_m: Optional[float] = None
+    data: Optional[Any] = None
     message: Optional[str] = None
+
+
+class SafetyAlert(BaseModel):
+    level: str
+    type: str
+    message: str
+
+
+class SafetyStatus(BaseModel):
+    overall_status: str
+    alerts: list[SafetyAlert] = []
 
 
 class AgentInfo(BaseModel):
     name: str
-    tool_used: Optional[str] = None
+    tools_used: list[str] = []
 
 
 class ORCAResponse(BaseModel):
@@ -24,4 +33,5 @@ class ORCAResponse(BaseModel):
     user_type: Optional[str] = None
     agent: AgentInfo
     answer: str
-    evidence: Optional[Evidence] = None
+    safety: Optional[SafetyStatus] = None
+    evidence: list[Evidence] = []
