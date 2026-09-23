@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.models.query import UserQuery
+from app.models.response import ORCAResponse
 from app.services.llm import ask_llm
 from app.agents.safety_agent import safety_agent
 
@@ -11,7 +12,7 @@ def home():
     return {"message": "ORCA Marine AI Backend is running"}
 
 
-@app.post("/query")
+@app.post("/query", response_model=ORCAResponse)
 def process_query(request: UserQuery):
 
     safety_result = safety_agent(
