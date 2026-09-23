@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from app.models.query import UserQuery
+from app.services.llm import ask_llm
+from app.agents.safety_agent import safety_agent
 
 app = FastAPI(title="ORCA Marine AI")
 
@@ -11,10 +13,43 @@ def home():
 
 @app.post("/query")
 def process_query(request: UserQuery):
+
+    safety_result = safety_agent(
+        request.query,
+        request.location
+    )
+
+    tool_result = safety_result["result"]
+
+    evidence = None
+
+    if tool_result:
+        evidence = {
+            "source": "ORCA Geofence Safety Tool",
+            "tool": safety_result["tool_used"],
+            "status": tool_result.get("status"),
+            "latitude": tool_result.get("latitude"),
+            "longitude": tool_result.get("longitude"),
+            "distance_to_boundary_m": tool_result.get(
+                "distance_to_boundary_m"
+            ),
+            "message": tool_result.get("message")
+        }
+
+    answer = ask_llm(
+        request.query,
+        tool_result
+    )
+
     return {
-        "message": "Query received",
         "query": request.query,
         "location": request.location,
         "language": request.language,
-        "user_type": request.user_type
+        "user_type": request.user_type,
+        "agent": {
+            "name": "Safety Agent",
+            "tool_used": safety_result["tool_used"]
+        },
+        "answer": answer,
+        "evidence": evidence
     }
