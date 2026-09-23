@@ -25,16 +25,18 @@ def process_query(request: UserQuery):
     evidence = None
 
     if tool_result:
+        tool_data = tool_result.get("data") or {}
+
         evidence = {
-            "source": "ORCA Geofence Safety Tool",
-            "tool": safety_result["tool_used"],
-            "status": tool_result.get("status"),
-            "latitude": tool_result.get("latitude"),
-            "longitude": tool_result.get("longitude"),
-            "distance_to_boundary_m": tool_result.get(
-                "distance_to_boundary_m"
-            ),
-            "message": tool_result.get("message")
+        "source": "ORCA Geofence Safety Tool",
+        "tool": safety_result["tool_used"],
+        "status": tool_result.get("status"),
+        "latitude": tool_data.get("latitude"),
+        "longitude": tool_data.get("longitude"),
+        "distance_to_boundary_m": tool_data.get(
+        "distance_to_boundary_m"
+         ),
+        "message": tool_result.get("message")
         }
 
     answer = ask_llm(
